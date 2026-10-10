@@ -38,8 +38,10 @@ jobs:
           pip install -r requirements-test.txt
 
       - name: Run Model and API Validation Tests
+        env:
+          PYTHONPATH: .
         run: |
-          pytest tests/ -v --junitxml=test-results.xml
+          python -m pytest tests/ -v --junitxml=test-results.xml
 
       - name: Upload Test Results
         if: always()
