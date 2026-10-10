@@ -59,6 +59,13 @@ Panel de control de la aplicación web en Azure App Service:
 
 ---
 
+### Paso 6: Configuración del Puerto en Azure Web App (`WEBSITES_PORT=5000`)
+Configuración de la variable de entorno `WEBSITES_PORT` con valor `5000` en **Variables de entorno > Configuración de aplicación**, permitiendo a Azure App Service dirigir las peticiones HTTP directamente al puerto 5000 expuesto por Flask en el contenedor.
+
+![Variables de Entorno Web App](screenshots/06_azure_webapp_env_vars.png)
+
+---
+
 ## 🔐 Configuración Final de Secretos en GitHub Actions
 
 En tu repositorio de GitHub [rafaelchamorro/sample-pycaret](https://github.com/rafaelchamorro/sample-pycaret) (`Settings > Secrets and variables > Actions > New repository secret`), debes configurar:
