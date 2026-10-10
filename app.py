@@ -25,7 +25,7 @@ def predict():
     prediction = predict_model(model, data=data_unseen, round = 0)
     print(prediction)
     prediction = int(prediction.loc[0, 'prediction_label'])
-    return render_template('home.html',pred='Expected Bill will be ${} anually'.format(prediction))
+    return render_template('home.html',pred='El costo anual estimado del seguro será de ${}'.format(prediction))
 
 @app.route('/predict_api',methods=['POST'])
 def predict_api():
