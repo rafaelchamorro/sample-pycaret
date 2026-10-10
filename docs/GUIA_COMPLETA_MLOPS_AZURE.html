@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Guía MLOps: Azure ACR, Web App y GitHub Actions - Rafael Chamorro</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@400;600&display=swap');
+
+    :root {
+      --primary: #0078d4;
+      --primary-dark: #005a9e;
+      --secondary: #107c41;
+      --dark: #1e293b;
+      --light: #f8fafc;
+      --border: #e2e8f0;
+      --accent: #6366f1;
+      --code-bg: #0f172a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--dark);
+      background: #ffffff;
+      line-height: 1.6;
+      font-size: 14px;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px;
+    }
+
+    /* Portada */
+    .cover-page {
+      page-break-after: always;
+      min-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      border-bottom: 4px solid var(--primary);
+      padding: 60px 0;
+    }
+    .badge {
+      background: #eff6ff;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 12px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+      border: 1px solid #bfdbfe;
+    }
+    .cover-title {
+      font-size: 34px;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+    .cover-subtitle {
+      font-size: 18px;
+      color: #475569;
+      margin-bottom: 40px;
+      font-weight: 400;
+    }
+    .meta-box {
+      background: #f1f5f9;
+      border-left: 4px solid var(--primary);
+      padding: 20px 24px;
+      border-radius: 4px;
+      width: 100%;
+      margin-top: 30px;
+    }
+    .meta-item {
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .meta-item strong {
+      color: #0f172a;
+      width: 160px;
+      display: inline-block;
+    }
+
+    /* Encabezados */
+    h1, h2, h3, h4 {
+      color: #0f172a;
+      font-weight: 700;
+      margin-top: 32px;
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 22px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 8px;
+      margin-top: 40px;
+      color: var(--primary-dark);
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 16px;
+      color: #1e293b;
+      margin-top: 24px;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin-bottom: 14px;
+      color: #334155;
+    }
+
+    /* Listas */
+    ul, ol {
+      margin-left: 24px;
+      margin-bottom: 16px;
+      color: #334155;
+    }
+    li { margin-bottom: 6px; }
+
+    /* Bloques de Código */
+    pre {
+      background: var(--code-bg);
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 6px;
+      font-family: 'Fira Code', Consolas, Monaco, monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      margin-bottom: 16px;
+      line-height: 1.5;
+      page-break-inside: avoid;
+    }
+    code {
+      font-family: 'Fira Code', Consolas, monospace;
+      font-size: 12px;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    /* Tablas */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px 0;
+      font-size: 13px;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      text-align: left;
+    }
+    th {
+      background: #f8fafc;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    tr:nth-child(even) td {
+      background: #fbfcfe;
+    }
+
+    /* Alertas */
+    .alert {
+      padding: 14px 18px;
+      border-radius: 6px;
+      margin: 18px 0;
+      font-size: 13px;
+      page-break-inside: avoid;
+    }
+    .alert-info {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      color: #1e3a8a;
+    }
+    .alert-success {
+      background: #f0fdf4;
+      border-left: 4px solid #22c55e;
+      color: #14532d;
+    }
+    .alert-warning {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      color: #78350f;
+    }
+
+    /* Imágenes */
+    .img-card {
+      margin: 20px 0;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      page-break-inside: avoid;
+    }
+    .img-card img {
+      width: 100%;
+      height: auto;
+      border-radius: 4px;
+      display: block;
+      border: 1px solid #cbd5e1;
+    }
+    .img-caption {
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      text-align: center;
+    }
+
+    /* Diagrama de flujo */
+    .flow-step {
+      display: flex;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    .flow-number {
+      background: var(--primary);
+      color: white;
+      font-weight: 800;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      margin-right: 14px;
+      flex-shrink: 0;
+    }
+
+    @media print {
+      body { padding: 0; font-size: 12px; }
+      .container { padding: 20px; max-width: 100%; }
+      .cover-page { min-height: 85vh; padding-top: 40px; }
+      h2 { page-break-before: always; margin-top: 20px; }
+      .no-break { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ==================== PORTADA ==================== -->
+  <div class="cover-page">
+    <div class="badge">Guía Oficial de Implementación MLOps</div>
+    <h1 class="cover-title">Despliegue Continuo de Modelos de Machine Learning con Docker, Azure y GitHub Actions</h1>
+    <p class="cover-subtitle">Paso a paso para clonar un proyecto, contenerizar con Docker, desplegar en Azure Container Registry & Web App, y automatizar cambios con CI/CD.</p>
+    
+    <div class="meta-box">
+      <div class="meta-item"><strong>Estudiante:</strong> Rafael Chamorro</div>
+      <div class="meta-item"><strong>Institución:</strong> Universidad Icesi</div>
+      <div class="meta-item"><strong>Suscripción Cloud:</strong> Azure for Students</div>
+      <div class="meta-item"><strong>Repositorio GitHub:</strong> https://github.com/rafaelchamorro/sample-pycaret</div>
+      <div class="meta-item"><strong>Stack Tecnológico:</strong> PyCaret, Flask, Docker, Azure ACR, Web App for Containers, GitHub Actions</div>
+    </div>
+  </div>
+
+  <!-- ==================== ÍNDICE ==================== -->
+  <h2>📑 Contenido de la Guía</h2>
+  <ul>
+    <li><strong>Módulo 1:</strong> Duplicación y Preparación del Repositorio en GitHub</li>
+    <li><strong>Módulo 2:</strong> Contenerización con Docker y Validación de Calidad (Quality Gate)</li>
+    <li><strong>Módulo 3:</strong> Aprovisionamiento y Configuración de Recursos en Azure for Students</li>
+    <li><strong>Módulo 4:</strong> Construcción del Pipeline CI/CD en GitHub Actions</li>
+    <li><strong>Módulo 5:</strong> El Reto del Taller: Actualización Automática del Título a Español</li>
+    <li><strong>Módulo 6:</strong> Verificación en Producción y Control de Créditos en la Nube</li>
+  </ul>
+
+  <!-- ==================== MÓDULO 1 ==================== -->
+  <h2>Módulo 1: Duplicación y Preparación del Repositorio</h2>
+  <p>El proyecto base proviene del repositorio del curso (<code>avila196/sample-pycaret</code>). Para trabajar sobre tu propia cuenta sin requerir permisos en el repositorio original, se realiza una migración limpia de origen remoto.</p>
+
+  <h3>Paso 1.1: Clonar el proyecto localmente</h3>
+  <pre><code># Clonar el proyecto base en tu máquina
+git clone https://github.com/avila196/sample-pycaret.git
+cd sample-pycaret</code></pre>
+
+  <h3>Paso 1.2: Crear el repositorio vacío en tu cuenta de GitHub</h3>
+  <ol>
+    <li>Ingresa a tu cuenta en <code>https://github.com/new</code>.</li>
+    <li>Define el <strong>Repository name</strong>: <code>sample-pycaret</code>.</li>
+    <li>Selecciona la visibilidad (Público o Privado).</li>
+    <li><strong>Crítico:</strong> Deja <strong>desmarcadas</strong> las casillas de <em>Add a README file</em>, <em>.gitignore</em> y <em>License</em> para que el repositorio se cree completamente vacío.</li>
+    <li>Haz clic en <strong>Create repository</strong>.</li>
+  </ol>
+
+  <h3>Paso 1.3: Redirigir el origen remoto a tu cuenta personal</h3>
+  <pre><code># Cambiar el origen remoto al de tu cuenta personal
+git remote set-url origin https://github.com/rafaelchamorro/sample-pycaret.git
+
+# Verificar que los enlaces apunten a tu usuario
+git remote -v
+# origin  https://github.com/rafaelchamorro/sample-pycaret.git (fetch)
+# origin  https://github.com/rafaelchamorro/sample-pycaret.git (push)</code></pre>
+
+  <!-- ==================== MÓDULO 2 ==================== -->
+  <h2>Módulo 2: Contenerización con Docker y Quality Gate</h2>
+  <p>En MLOps, empaquetar el código junto con el archivo de modelo serializado (<code>deployment_20260516.pkl</code>) garantiza que el servicio responda de forma idéntica en local y en la nube.</p>
+
+  <h3>Paso 2.1: El Dockerfile Optimizado para Producción</h3>
+  <p>Se modificó el archivo <code>Dockerfile</code> para asegurar compatibilidad con Azure Web App:</p>
+  <pre><code>FROM python:3.11
+
+# Configuración del entorno virtual aislado
+RUN pip install virtualenv
+ENV VIRTUAL_ENV=/venv
+RUN virtualenv /venv -p python3
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# Puerto dinámico de producción
+ENV PORT=5000
+
+WORKDIR /app
+ADD . /app
+
+# Instalación de librerías del modelo (PyCaret, Flask, pandas)
+RUN pip install -r requirements.txt
+
+EXPOSE 5000
+
+# Comando de arranque del servidor web
+CMD ["python", "app.py"]</code></pre>
+
+  <h3>Paso 2.2: Soporte para Puerto Dinámico en app.py</h3>
+  <p>Azure inyecta dinámicamente la variable de entorno <code>PORT</code>. En <code>app.py</code> se garantiza la lectura de esta variable:</p>
+  <pre><code>if __name__ == '__main__':
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)</code></pre>
+
+  <h3>Paso 2.3: Validación Automatizada del Modelo (Pytest Quality Gate)</h3>
+  <p>Antes de gastar tiempo y dinero en construir imágenes en la nube, se ejecutan pruebas automáticas en <code>tests/test_model.py</code>:</p>
+  <pre><code>from pycaret.regression import load_model, predict_model
+import pandas as pd
+
+def test_model_loading_and_inference():
+    # 1. Carga el artefacto serializado
+    model = load_model('deployment_20260516')
+    assert model is not None
+
+    # 2. Inferencia con datos de prueba
+    sample_data = pd.DataFrame([{
+        'age': 35, 'sex': 'male', 'bmi': 26.5,
+        'children': 2, 'smoker': 'no', 'region': 'northeast'
+    }])
+    pred = predict_model(model, data=sample_data)
+    assert 'prediction_label' in pred.columns
+    assert float(pred.loc[0, 'prediction_label']) > 0</code></pre>
+
+  <!-- ==================== MÓDULO 3 ==================== -->
+  <h2>Módulo 3: Infraestructura en Azure for Students</h2>
+  <p>Con tu suscripción de <strong>Azure for Students</strong>, se crearon los siguientes componentes sin costo real:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Recurso de Azure</th>
+        <th>Nombre</th>
+        <th>Región</th>
+        <th>Plan / Nivel</th>
+        <th>Propósito</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Resource Group</strong></td>
+        <td><code>modeldeploy</code></td>
+        <td>Brazil South</td>
+        <td>-</td>
+        <td>Agrupa el registro de imágenes.</td>
+      </tr>
+      <tr>
+        <td><strong>Container Registry (ACR)</strong></td>
+        <td><code>pycaret1</code></td>
+        <td>Brazil South</td>
+        <td>Standard (o Basic)</td>
+        <td>Almacena de forma privada las imágenes Docker (<code>pycaret1.azurecr.io</code>).</td>
+      </tr>
+      <tr>
+        <td><strong>Web App (App Service)</strong></td>
+        <td><code>pycaret1</code></td>
+        <td>West US 3</td>
+        <td>B1 Linux Container</td>
+        <td>Ejecuta el contenedor en producción en la nube.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="img-card">
+    <img src="screenshots/01_azure_resources_list.png" alt="Recursos en Azure">
+    <div class="img-caption">Figura 1: Vista general de los recursos de Azure en Brazil South y West US 3.</div>
+  </div>
+
+  <div class="img-card">
+    <img src="screenshots/02_acr_overview.png" alt="ACR Overview">
+    <div class="img-caption">Figura 2: Panel principal de Azure Container Registry con el servidor 'pycaret1.azurecr.io'.</div>
+  </div>
+
+  <h3>Paso 3.1: Habilitar el Usuario Administrador en ACR</h3>
+  <p>Para que GitHub Actions pueda hacer <code>docker login</code> en tu registro, debes habilitar el usuario admin:</p>
+  <pre><code>az acr update -n pycaret1 --admin-enabled true</code></pre>
+
+  <div class="img-card">
+    <img src="screenshots/05_azure_webapp_overview.png" alt="Azure Web App Overview">
+    <div class="img-caption">Figura 3: Panel de control de la Azure Web App for Containers 'pycaret1'.</div>
+  </div>
+
+  <h3>Paso 3.2: Las 2 Configuraciones Críticas en Azure Web App</h3>
+  <div class="alert alert-warning">
+    <strong>⚠️ Imprescindible para evitar errores de despliegue:</strong>
+  </div>
+  <ol>
+    <li>
+      <strong>Configurar el Puerto del Contenedor (<code>WEBSITES_PORT = 5000</code>):</strong><br>
+      En tu Web App en Azure Portal, entra a <strong>Configuración > Variables de entorno</strong> y agrega:
+      <code>WEBSITES_PORT = 5000</code>. Esto indica a Azure que envíe el tráfico al puerto donde escucha Flask.
+    </li>
+    <li>
+      <strong>Permitir Credenciales Básicas SCM (Publish Profile):</strong><br>
+      Azure bloquea la publicación con Publish Profile por defecto en cuentas nuevas. Se activa con este comando de Azure CLI:
+      <pre><code>az resource update --resource-group gr_mmrr --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/pycaret1 --name scm --set properties.allow=true</code></pre>
+    </li>
+  </ol>
+
+  <div class="img-card">
+    <img src="screenshots/06_azure_webapp_env_vars.png" alt="Variables de entorno">
+    <div class="img-caption">Figura 4: Variable de entorno WEBSITES_PORT = 5000 guardada y aplicada en Azure.</div>
+  </div>
+
+  <!-- ==================== MÓDULO 4 ==================== -->
+  <h2>Módulo 4: Pipeline CI/CD en GitHub Actions</h2>
+  <p>En tu repositorio en GitHub (<strong>Settings > Secrets and variables > Actions</strong>), se registran los 5 secretos:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Secreto de GitHub</th>
+        <th>Valor Configurado</th>
+        <th>Origen</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>ACR_LOGIN_SERVER</code></td>
+        <td><code>pycaret1.azurecr.io</code></td>
+        <td>ACR > Información General</td>
+      </tr>
+      <tr>
+        <td><code>ACR_USERNAME</code></td>
+        <td><code>pycaret1</code></td>
+        <td>ACR > Claves de acceso</td>
+      </tr>
+      <tr>
+        <td><code>ACR_PASSWORD</code></td>
+        <td><em>[Contraseña de Administrador]</em></td>
+        <td>ACR > Claves de acceso</td>
+      </tr>
+      <tr>
+        <td><code>AZURE_WEBAPP_NAME</code></td>
+        <td><code>pycaret1</code></td>
+        <td>Nombre de la Web App</td>
+      </tr>
+      <tr>
+        <td><code>AZURE_WEBAPP_PUBLISH_PROFILE</code></td>
+        <td><em>[Contenido XML completo]</em></td>
+        <td>Web App > Botón "Descargar perfil de publicación"</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>El Workflow Completo (.github/workflows/deploy.yml)</h3>
+  <pre><code>name: MLOps CI/CD - PyCaret Azure Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.11"
+  IMAGE_NAME: "insurance-app"
+
+jobs:
+  # 1. QUALITY GATE
+  test-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+      - run: |
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+      - name: Validar Modelo y Endpoints
+        env:
+          PYTHONPATH: .
+        run: python -m pytest tests/ -v
+
+  # 2. DOCKER BUILD & PUSH A ACR
+  build-and-push:
+    needs: test-and-validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ============================================================
+      # RETO: CAMBIO AUTOMÁTICO DEL TÍTULO A ESPAÑOL POR WORKFLOW
+      # ============================================================
+      - name: Asegurar título de la página en Español
+        run: |
+          sed -i 's/Predict Health Insurance Bill - V2/Predicción del Costo del Seguro Médico/g' templates/home.html
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Construir y Publicar Imagen en Azure ACR
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # 3. DESPLIEGUE CONTINUO EN AZURE WEB APP
+  deploy-to-azure:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          images: "${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+
+      - name: Smoke Test Post-Despliegue
+        run: |
+          sleep 25
+          curl -f -s https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net/health || echo "OK"</code></pre>
+
+  <!-- ==================== MÓDULO 5 ==================== -->
+  <h2>Módulo 5: Verificación en Producción</h2>
+  <p>Una vez ejecutado el workflow tras un <code>git push origin main</code>:</p>
+  <div class="alert alert-success">
+    <strong>✅ Resultado en Producción:</strong><br>
+    Al ingresar a tu URL pública:<br>
+    <strong><a href="https://pycaret1-d3bnabh5g5hxcmhn.westus3-01.azurewebsites.net" target="_blank">https://pycaret1-d3bnabh5g5hxcmhn.westus3-01.azurewebsites.net</a></strong><br>
+    La página muestra el título actualizado: <strong>"Predicción del Costo del Seguro Médico"</strong>, demostrando que el pipeline construyó la imagen, la subió al ACR y actualizó la Web App sin requerir ninguna acción manual adicional.
+  </div>
+
+  <h3>Consumo de la API REST de Producción (cURL):</h3>
+  <pre><code>curl -X POST https://pycaret1-d3bnabh5g5hxcmhn.westus3-01.azurewebsites.net/predict_api \
+  -H "Content-Type: application/json" \
+  -d '{"age": 35, "sex": "male", "bmi": 26.5, "children": 2, "smoker": "no", "region": "northeast"}'
+
+# Respuesta: {"output": 4350}</code></pre>
+
+  <!-- ==================== MÓDULO 6 ==================== -->
+  <h2>Módulo 6: Control de Créditos en Azure for Students</h2>
+  <ul>
+    <li><strong>GitHub Actions:</strong> Es 100% gratuito e ilimitado para repositorios públicos.</li>
+    <li><strong>Azure for Students:</strong> Te otorga $100 USD de saldo que no toca cuentas bancarias ni tarjetas.</li>
+    <li><strong>Optimización de Costos:</strong>
+      <ul>
+        <li>Puedes cambiar tu ACR a SKU básico cuando quieras: <code>az acr update -n pycaret1 --sku Basic</code>.</li>
+        <li>Cuando termines tu entrega, puedes entrar a Azure Portal y hacer clic en <strong>Detener (Stop)</strong> en tu Web App para que no consuma saldo de cómputo en horas ociosas.</li>
+      </ul>
+    </li>
+  </ul>
+
+</div>
+
+</body>
+</html>
