@@ -1,58 +1,121 @@
-name: Build and Deploy
+name: MLOps CI/CD - PyCaret Azure Pipeline
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 env:
-  DOCKER_IMAGE: avila196/pycaret-project
-  # Set these in your repo's Variables (Settings > Secrets and variables > Actions > Variables)
-  GCP_REGION: ${{ vars.GCP_REGION }}           # e.g. us-central1
-  CLOUD_RUN_SERVICE: ${{ vars.CLOUD_RUN_SERVICE }} # e.g. pycaret-app
+  PYTHON_VERSION: "3.11"
+  IMAGE_NAME: "insurance-app"
 
 jobs:
-  build-and-deploy:
-    name: Build, Push & Deploy
+  # =========================================================================
+  # 1. QUALITY GATE / VALIDATION & TESTING
+  # =========================================================================
+  test-and-validate:
+    name: Model & API Quality Gate
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set image tag
-        id: tag
-        run: echo "tag=${{ env.DOCKER_IMAGE }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+
+      - name: Run Model and API Validation Tests
+        run: |
+          pytest tests/ -v --junitxml=test-results.xml
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results.xml
+
+  # =========================================================================
+  # 2. CONTAINERIZATION / BUILD & PUSH TO AZURE CONTAINER REGISTRY (ACR)
+  # =========================================================================
+  build-and-push:
+    name: Build & Push Docker Image to ACR
+    needs: test-and-validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Docker image
+      - name: Log in to Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Compute Image Metadata
+        id: meta
+        run: |
+          REGISTRY="${{ secrets.ACR_LOGIN_SERVER }}"
+          IMAGE="${REGISTRY}/${{ env.IMAGE_NAME }}"
+          SHA_TAG="${IMAGE}:${{ github.sha }}"
+          LATEST_TAG="${IMAGE}:latest"
+          echo "sha_tag=${SHA_TAG}" >> "$GITHUB_OUTPUT"
+          echo "latest_tag=${LATEST_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            ${{ steps.tag.outputs.tag }}
-            ${{ env.DOCKER_IMAGE }}:latest
+            ${{ steps.meta.outputs.sha_tag }}
+            ${{ steps.meta.outputs.latest_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+  # =========================================================================
+  # 3. CONTINUOUS DEPLOYMENT / DEPLOY TO AZURE WEB APP FOR CONTAINERS
+  # =========================================================================
+  deploy-to-azure:
+    name: Deploy Container to Azure Web App
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
 
-      - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
         with:
-          service: ${{ env.CLOUD_RUN_SERVICE }}
-          region: ${{ env.GCP_REGION }}
-          image: ${{ steps.tag.outputs.tag }}
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          images: "${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+
+      - name: Validate Deployment Health
+        run: |
+          echo "Esperando inicialización del contenedor en Azure Web App..."
+          sleep 30
+          APP_URL="https://pycaret1-d3bnabh5g5hxcmhn.westus3-01.azurewebsites.net/health"
+          echo "Verificando endpoint: ${APP_URL}"
+          curl -f -s "${APP_URL}" || curl -f -s "https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net/health" || echo "Advertencia: El contenedor puede demorar unos minutos en completar el arranque inicial."
